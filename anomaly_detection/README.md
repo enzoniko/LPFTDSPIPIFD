@@ -1,101 +1,94 @@
 # Anomaly Detection Module
 
-This module provides tools for detecting anomalies in residual data from physics-informed neural networks (PINNs) and data-driven models.
+This package implements Stage 2 of the pipeline: anomaly detection on residual signals produced by PINN, hybrid, or data-driven models.
 
-## Features
+## Current Structure
 
-- Feature extraction from time series data
-- Multiple anomaly detection methods:
-  - Extreme Value Theory (EVT)
-  - Isolation Forest
-- Preprocessing support for different residual formats:
-  - Direct PINN
-  - Hybrid RNN-PINN
-- Grid search for optimal parameter selection
-- Evaluation using standard metrics
-- Visualization tools for results analysis
+- `cli.py`: command-line entry point
+- `preprocessing.py`: residual loading and format normalization
+- `feature_extraction.py`: statistical, FFT, and optional extended features
+- `evaluation.py`: grid search and metrics
+- `methods/evt.py`: Extreme Value Theory detector
+- `methods/isolation_forest.py`: Isolation Forest baseline
+- `utils.py`: result serialization and plotting helpers
 
-## Installation
+## Supported Residual Sources
 
-This module is part of the larger repository. No separate installation is required.
+The current CLI accepts:
 
-## Usage
+- `direct`: direct PINN residual dictionaries
+- `hybrid`: hybrid RNN-PINN residual dictionaries
+- `data_driven`: data-driven model residuals
 
-### Command Line Interface
-
-The module can be used from the command line to perform anomaly detection on residual data:
+## CLI Usage
 
 ```bash
 python -m anomaly_detection.cli --residuals path/to/residuals.pth --source direct
 ```
 
-#### Arguments
+### Arguments
 
-- `--residuals`: Path to the residuals file (.pth) [required]
-- `--source`: Source type of residuals: 'direct' or 'hybrid' [default: direct]
-- `--output`: Output file for the results [default: anomaly_detection_results.json]
-- `--workers`: Number of worker processes for grid search [default: 4]
-- `--sample-rate`: Sample rate in Hz for FFT features [default: 50000]
-- `--methods`: Methods to evaluate ('evt', 'isolation_forest', or 'all') [default: all]
-- `--plot-dir`: Directory for saving plots [default: anomaly_detection_plots]
-- `--skip-plots`: Skip generating plots [flag]
+- `--residuals`: path to the residual `.pth` file (required)
+- `--source`: `direct`, `hybrid`, or `data_driven` [default: `direct`]
+- `--output`: JSON file for the selected best results [default: `anomaly_detection_results.json`]
+- `--workers`: worker count for grid search [default: `8`]
+- `--sample-rate`: sample rate used by feature extraction [default: `50000`]
+- `--methods`: one or more of `evt`, `isolation_forest`, or `all` [default: `evt`]
+- `--plot-dir`: directory for ROC curves and confusion matrices [default: `anomaly_detection_plots`]
+- `--skip-plots`: disable plot generation
 
-### Programmatic Usage
+## What The CLI Does
 
-You can also use the module programmatically in your Python code:
+1. Loads and preprocesses the residual file.
+2. Splits the `normal` class into train and test partitions.
+3. Runs grid search for the selected methods.
+4. Saves best parameters and metrics to JSON.
+5. Optionally writes ROC curves and confusion matrices.
+
+## Programmatic Usage
 
 ```python
-from anomaly_detection import preprocess_residuals, EVTDetector, IsolationForestDetector, evaluate_detector
+import numpy as np
 
-# Load and preprocess residuals
+from anomaly_detection import (
+    EVTDetector,
+    evaluate_detector,
+    preprocess_residuals,
+)
+
 processed = preprocess_residuals('residuals.pth', source_type='direct')
 
-# Split normal samples
 normal_samples = processed.get('normal', [])
-normal_train = normal_samples[:int(0.8 * len(normal_samples))]
-normal_test = normal_samples[int(0.8 * len(normal_samples)):]
+split_idx = int(0.8 * len(normal_samples))
+normal_train = normal_samples[:split_idx]
+normal_test = normal_samples[split_idx:]
 
-# Prepare test samples
 test_samples = {'normal': normal_test}
-for key, sequences in processed.items():
-    if key != 'normal':
-        test_samples[key] = sequences
+for label, sequences in processed.items():
+    if label != 'normal':
+        test_samples[label] = sequences
 
-# Create and fit a detector
 detector = EVTDetector(agg_func=np.max, threshold_u_quantile=0.95, quantile=0.99)
 detector.fit(normal_train)
 
-# Evaluate the detector
 metrics = evaluate_detector(detector, test_samples)
 print(metrics)
 ```
 
-## Methods
+## Notes
 
-### Extreme Value Theory (EVT)
-
-EVT models the extreme values of a distribution and is particularly suited for anomaly detection. It uses the Generalized Pareto Distribution (GPD) to model the tail of the distribution.
-
-### Isolation Forest
-
-Isolation Forest is an ensemble-based method that isolates anomalies by randomly selecting a feature and a split value. It's effective for detecting anomalies in high-dimensional spaces.
-
-## Feature Extraction
-
-The module provides various feature extraction methods:
-
-- Basic statistical features (mean, median, std, kurtosis, skewness, etc.)
-- FFT-based features (spectral centroid, bandwidth, roll-off, etc.)
-- Wavelet-based features (energy, entropy, etc.)
-- tsfresh features (optional)
+- The preprocessing code still enriches `direct` residuals with rotation-speed metadata through `Data.LoadData` when available.
+- The default CLI behavior currently optimizes and runs EVT. Isolation Forest is available, but you must request it explicitly with `--methods isolation_forest` or `--methods all`.
 
 ## Dependencies
 
-- numpy
-- scipy
-- scikit-learn
-- matplotlib
-- pywt (PyWavelets)
-- tsfresh
-- torch
-- pandas 
+Core dependencies used by this module:
+
+- `numpy`
+- `scipy`
+- `scikit-learn`
+- `matplotlib`
+- `torch`
+- `pandas`
+
+Optional feature paths may additionally require `PyWavelets` and `tsfresh`.

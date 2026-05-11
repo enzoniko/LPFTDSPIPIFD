@@ -18,7 +18,7 @@ A critical question in Scientific Machine Learning is whether improving a Physic
 ## 🗂️ Repository Structure
 
 ```
-josafat/
+.
 ├── Models/                          # Core neural network architectures
 │   ├── __init__.py
 │   └── basicPINNv8.py               # Main PINN model used in all experiments
@@ -78,18 +78,20 @@ josafat/
 ├── siamese_analysis/                # Stage 3: Siamese Neural Networks
 │   ├── __init__.py, cli.py, README.md
 │   ├── data/
-│   │   ├── __init__.py, caching.py, dataset.py, feature_extractors.py, parallel_features.py, processor.py
+│   │   ├── __init__.py, dataset.py, feature_extractors.py, parallel_features.py, processor.py
 │   ├── evaluation/
 │   │   ├── __init__.py, evaluator.py
 │   ├── models/
 │   │   ├── __init__.py, siamese.py
 │   └── training/
-│       ├── __init__.py, grid_search.py, trainer.py
+│       ├── __init__.py, randomized_search.py, trainer.py
 │
 ├── utils/                           # Utility functions
 │   ├── data_utils.py                # Data preparation utilities
 │   └── residuals_utils.py           # Residual extraction utilities
 │
+├── main_ACCESS.tex                  # Paper manuscript source
+├── README.md                        # Repository overview and reproduction guide
 └── scripts/                         # Analysis & visualization scripts
     ├── extract_bayesian_raw_metrics_corrected.py  # Tables 1-4 raw metrics
     ├── visualize_bayesian_results.py              # Bayesian HPO comparison
@@ -123,22 +125,39 @@ josafat/
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/alekfrohlich/hybrid_pinns.git
-   cd hybrid_pinns, and then cd josafat when you want to use the scripts
+   cd hybrid_pinns
    ```
 
-2. **Install dependencies (using Poetry):**
+2. **Create and activate a Python environment:**
    ```bash
-   poetry install
-   ```
-   
-   Or using pip:
-   ```bash
-   pip install torch numpy scipy matplotlib scikit-learn tqdm optina umap-learn
+   python -m venv .venv
+   # Windows PowerShell
+   .venv\Scripts\Activate.ps1
    ```
 
-3. **Verify installation:**
+3. **Install dependencies:**
+
+   This repository currently does not include a `pyproject.toml` or `requirements.txt`, so install the packages needed for the workflows you plan to run.
+
    ```bash
-   python training_scripts/run_smoke_tests.py
+   pip install torch numpy scipy matplotlib scikit-learn tqdm optuna umap-learn pandas seaborn
+   ```
+
+   Depending on the scripts you use, you may also need optional packages such as `PyWavelets` and `tsfresh`.
+
+4. **Quick sanity checks:**
+   ```bash
+   python -m anomaly_detection.cli --help
+   python -m siamese_analysis.cli --help
+   python training_scripts/run_smoke_tests.py --help
+   ```
+
+5. **Optional smoke test run:**
+
+   The smoke test executes training scripts and requires synthetic data under `training_scripts/analytical_analysis/data_v2`. Real-data checks additionally require `Data/v3/X_normal_v3.pth` and `Data/v3/Y_normal_v3.pth`.
+
+   ```bash
+   python training_scripts/run_smoke_tests.py --skip-real
    ```
 
 ---
@@ -320,7 +339,7 @@ Stage 2 EVT-based anomaly detection module:
 
 Stage 3 Siamese Neural Network module:
 - Triplet-based training
-- Configurable architecture search
+- Randomized hyperparameter search
 - Fault classification with cross-validation
 - Embedding visualization (UMAP, t-SNE)
 
@@ -334,7 +353,7 @@ The experimental dataset consists of bearing vibration data under various fault 
 - Bearing faults (inner race, outer race, rolling element)
 - Multiple rotation speeds
 
-Data loading is handled by `Data/LoadDatav3.py`. Ensure the dataset is placed in the appropriate directory structure as specified in `Data/LoadData.py`.
+Data loading is handled by `Data/LoadDatav3.py`. Some legacy scripts still reference `Data/LoadData.py`, so keep the dataset layout compatible with both loaders when reproducing older experiments.
 
 ---
 
@@ -346,7 +365,7 @@ This repository follows a **three-stage diagnostic framework**:
 2. **Stage 2 (anomaly_detection/)**: Use EVT to detect anomalies from PINN residuals
 3. **Stage 3 (siamese_analysis/)**: Classify faults using Siamese networks on residual features
 
-The `scripts/` directory contains analysis and visualization tools that orchestrate the three stages and generate paper assets (tables, figures).
+The `scripts/` directory contains analysis and visualization tools that orchestrate the three stages and generate paper assets (tables, figures). The repository root is the working directory for all commands shown above.
 
 ---
 
