@@ -1,4 +1,4 @@
-# JOSAFAT: Physics-Informed Fault Diagnosis Framework
+# Physics-Informed Fault Diagnosis Framework
 
 **Paper:** "Linking Physical Fidelity to Downstream Performance in Physics-Informed Fault Diagnosis"  
 **Journal:** IEEE Access (2026)  
